@@ -5,12 +5,13 @@ import os
 import httpx
 from prompt_engineering import build_email_prompt
 from pydantic import BaseModel
+from huggingface_hub import InferenceClient
 
 # Load environment variables from .env file
 load_dotenv()
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 
-HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/HuggingFaceTB/SmolLM3-3B"
 
 app = FastAPI()
 
@@ -21,6 +22,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+client = InferenceClient(
+    provider="hf-inference",
+    api_key=os.environ["HUGGINGFACE_API_KEY"],
 )
 
 class EmailPromptRequest(BaseModel):
@@ -37,16 +43,17 @@ async def generate_email(request: EmailPromptRequest):
     if not user_prompt:
         return {"error": "Prompt is required."}
 
-    # Build the LLM prompt
     llm_prompt = build_email_prompt(user_prompt)
 
-    # Call HuggingFace Inference API
-    headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
-    payload = {"inputs": llm_prompt}
-    async with httpx.AsyncClient() as client:
-        response = await client.post(HUGGINGFACE_API_URL, headers=headers, json=payload)
-        if response.status_code != 200:
-            return {"error": f"HuggingFace API error: {response.text}"}
-        result = response.json()
-        generated_email = result[0]["generated_text"] if isinstance(result, list) and "generated_text" in result[0] else result
+    # Use the new chat completion API
+    completion = client.chat.completions.create(
+        model="HuggingFaceTB/SmolLM3-3B",
+        messages=[
+            {
+                "role": "user",
+                "content": llm_prompt
+            }
+        ],
+    )
+    generated_email = completion.choices[0].message.content
     return {"email": generated_email} 
