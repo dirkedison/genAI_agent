@@ -3,13 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
 import httpx
-from .prompt_engineering import build_email_prompt
+from prompt_engineering import build_email_prompt
+from pydantic import BaseModel
 
 # Load environment variables from .env file
 load_dotenv()
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 
-HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-small"
+HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
 
 app = FastAPI()
 
@@ -22,15 +23,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class EmailPromptRequest(BaseModel):
+    prompt: str
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Smart Email Assistant API!"}
 
 # Placeholder for email generation endpoint
 @app.post("/generate-email")
-async def generate_email(request: Request):
-    data = await request.json()
-    user_prompt = data.get("prompt", "")
+async def generate_email(request: EmailPromptRequest):
+    user_prompt = request.prompt
     if not user_prompt:
         return {"error": "Prompt is required."}
 
@@ -45,6 +48,5 @@ async def generate_email(request: Request):
         if response.status_code != 200:
             return {"error": f"HuggingFace API error: {response.text}"}
         result = response.json()
-        # The output format may vary by model; handle accordingly
         generated_email = result[0]["generated_text"] if isinstance(result, list) and "generated_text" in result[0] else result
     return {"email": generated_email} 
