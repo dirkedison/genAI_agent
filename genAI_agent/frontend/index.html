@@ -22,6 +22,13 @@
         <form id="emailForm">
             <label for="prompt">Describe your email request:</label>
             <textarea id="prompt" required placeholder="e.g., reschedule meeting, apologize for late reply..."></textarea>
+            <label for="tone">Select tone:</label>
+            <select id="tone">
+                <option value="Formal">Formal</option>
+                <option value="Friendly">Friendly</option>
+                <option value="Apologetic">Apologetic</option>
+                <option value="Assertive">Assertive</option>
+            </select>
             <button type="submit" id="generateBtn">Generate Email</button>
         </form>
         <div class="error" id="error"></div>
@@ -44,7 +51,7 @@
                 const response = await fetch('http://127.0.0.1:8000/generate-email', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: promptInput.value })
+                    body: JSON.stringify({ prompt: promptInput.value, tone: document.getElementById('tone').value })
                 });
                 const data = await response.json();
                 if (data.email) {
