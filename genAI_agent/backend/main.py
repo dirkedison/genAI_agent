@@ -33,6 +33,8 @@ client = InferenceClient(
 class EmailPromptRequest(BaseModel):
     prompt: str
     tone: str = "Formal"
+    recipient: str = ""
+    subject: str = ""
 
 def remove_think_blocks(text: str) -> str:
     # Remove all <think>...</think> blocks (including multiline)
@@ -47,10 +49,12 @@ def read_root():
 async def generate_email(request: EmailPromptRequest):
     user_prompt = request.prompt
     tone = request.tone
+    recipient = request.recipient
+    subject = request.subject
     if not user_prompt:
         return {"error": "Prompt is required."}
 
-    llm_prompt = build_email_prompt(user_prompt, tone)
+    llm_prompt = build_email_prompt(user_prompt, tone, recipient, subject)
 
     # Use the new chat completion API
     completion = client.chat.completions.create(
