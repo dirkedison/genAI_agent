@@ -6,6 +6,7 @@ import httpx
 from prompt_engineering import build_email_prompt
 from pydantic import BaseModel
 from huggingface_hub import InferenceClient
+import re
 
 # Load environment variables from .env file
 load_dotenv()
@@ -32,6 +33,10 @@ client = InferenceClient(
 class EmailPromptRequest(BaseModel):
     prompt: str
 
+def remove_think_blocks(text: str) -> str:
+    # Remove all <think>...</think> blocks (including multiline)
+    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Smart Email Assistant API!"}
@@ -56,4 +61,5 @@ async def generate_email(request: EmailPromptRequest):
         ],
     )
     generated_email = completion.choices[0].message.content
-    return {"email": generated_email} 
+    cleaned_email = remove_think_blocks(generated_email)
+    return {"email": cleaned_email} 
